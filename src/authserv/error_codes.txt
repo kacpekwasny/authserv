@@ -1,0 +1,11 @@
+'0' - success,
+'1' - client entity id not found
+'2' - client entity password missmatch
+'3' - unmarshal error
+'4' - login in use
+'5' - credentials dont match requirements
+'6' - failed to prelong session
+'7' - request auth fail
+'8' - login not found
+'9' - not all needed keys are present
+'10'- failed to remove account
