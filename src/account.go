@@ -7,7 +7,6 @@ import (
 )
 
 type account struct {
-	Id            string    `json:"id:`
 	Login         string    `json:"login"`
 	Pass_hash     string    `json:"pass_hash"`
 	Last_login    time.Time `json:"last_login"`
@@ -15,12 +14,7 @@ type account struct {
 
 	// To de-auth token when in the time span that it would
 	// still be valid
-	Loged_in bool `json:"logged_in"`
-}
-
-// create random ID; DOESNT GUARANTEE UNIQUENESS!
-func (acc *account) makeID() {
-	acc.Id = cmt.RandString(ID_LENGTH)
+	Logged_in bool `json:"logged_in"`
 }
 
 // set login
@@ -31,6 +25,10 @@ func (acc *account) setLogin(login string) {
 // set hash of password
 func (acc *account) setPassHash(pass string) {
 	acc.Pass_hash = makeHash(pass)
+}
+
+func (acc *account) updatePassHash(pass_hash string) {
+	acc.Pass_hash = pass_hash
 }
 
 // Update last_login time
@@ -44,23 +42,16 @@ func (acc *account) newToken() {
 }
 
 func (acc *account) logout() {
-	acc.Loged_in = false
+	acc.Logged_in = false
 }
 
 func (acc *account) login() {
-	acc.Loged_in = true
+	acc.Logged_in = true
 }
 
 func makeAccount(login, pass string) *account {
 
 	acc := &account{}
-	// make unique ID
-	for {
-		acc.makeID()
-		if idIsUnique(acc.Id) {
-			break
-		}
-	}
 	acc.setLogin(login)
 	acc.setPassHash(pass)
 	acc.uLogTime()

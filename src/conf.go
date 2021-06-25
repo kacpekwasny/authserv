@@ -5,8 +5,7 @@ import "time"
 var (
 	MAX_TOKEN_AGE   = time.Hour
 	TOKEN_LENGTH    = 50
-	ID_LENGTH       = 30
-	CLIENT_PASSWORD = map[string]string{"admin": "admin"} // {client_name1:password1, client_name2:password2}
+	CLIENT_PASSWORD = map[string]string{} // {client_name1:password1, client_name2:password2}
 	PASS_MAX_LEN    = 30
 	PASS_MIN_LEN    = 4
 	LOGIN_MAX_LEN   = 40
