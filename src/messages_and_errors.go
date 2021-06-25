@@ -47,4 +47,5 @@ var (
 	erc_NOT_AUTH_ACC                  = "17" // account is not authenticated
 	erc_GET_ALL_LOGINS_ERR            = "18" // get all logins error
 	erc_GET_ALL_ACCOUNTS_ERR          = "19" // get all accounts error
+	erc_DELETE_ALL_ACCOUNTS_ERR       = "20" // error during DELETE ALL
 )

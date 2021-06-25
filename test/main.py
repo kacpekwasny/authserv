@@ -56,6 +56,10 @@ class Connection:
         for login in self.getAllLoginsDB():
             self.removeAccount(login)
 
+    def cleanDB_DELETE(self):
+        print("DeleteAllRecordsFromDatabase")
+        return self.delete("DeleteAllRecordsFromDatabase")
+
     def getAllLoginsDB(self):
         return self.get("getAllLoginsDB")   
 
@@ -105,6 +109,9 @@ class Connection:
     def post(self, url, **dc_in) -> dict:
         dc_in.update(self.credentials)
         return req.post(self.url + url, json=dc_in).json()
+
+    def delete(self, url) -> dict:
+        return req.delete(self.url + url, json=self.credentials).json()
     
 
 class Test:
@@ -164,7 +171,9 @@ class Test:
         if fail:
             print(dc)
             return
+        self.b.accs.pop(acc.login)
         acc.login = new_login
+        self.b.accs[acc.login] = acc
 
     def changePassword(self):
         acc = self.randomAcc()
@@ -198,5 +207,6 @@ class Test:
 
 if __name__ == "__main__":
     t = Test("http://localhost:8888/authserv/", {"client_id": "admin", "client_password": "admin"})
-    t.c.cleanDB()
+    print(t.c.cleanDB_DELETE())
+    print("simulation")
     t.simulation()

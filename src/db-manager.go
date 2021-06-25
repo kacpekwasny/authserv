@@ -62,10 +62,15 @@ func (m *Manager) DBConnection() {
 
 func (m *Manager) TestDBConn() {
 	m.db_ping_on = true
+	ping_count := 0
 	go func() {
 		fmt.Println(" TestDBConn() - START")
 		for {
 			m.PingDB()
+			if ping_count%10 == 0 {
+				fmt.Printf(" TestDBConn() - %v ping successfull\n  next info in 10 pings.\n", ping_count)
+				ping_count++
+			}
 			time.Sleep(m.db_ping_interval)
 			if !m.db_ping_on {
 				fmt.Println(" TestDBConn() - END")

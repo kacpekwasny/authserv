@@ -25,3 +25,8 @@ func loginMatchesReq(login string) (bool, string) {
 	}
 	return true, ""
 }
+
+// AddClientCredentials - login and password that the WWW server will authorise itself by
+func AddClientCredentials(login, password string) {
+	CLIENT_PASSWORD[login] = password
+}

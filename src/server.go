@@ -18,19 +18,6 @@ type Server struct {
 	URL_ROOT string
 }
 
-func (s *Server) setURL_ROOT(root string) {
-	l := len(root)
-	if l == 0 {
-		s.URL_ROOT = "/"
-		return
-	}
-	if root[l-1] != '/' {
-		root = root + "/"
-		s.URL_ROOT = root
-		return
-	}
-}
-
 func InitServer(URL_ROOT, db_username, db_password, db_address string, dp_port int,
 	db_database_name, db_tablename string, ping_interval time.Duration, max_accountBuffer_len int,
 	observe_interval time.Duration) *Server {
@@ -44,6 +31,20 @@ func InitServer(URL_ROOT, db_username, db_password, db_address string, dp_port i
 	s.myr = &mux.Router{}
 	s.setURL_ROOT(URL_ROOT)
 	return s
+}
+
+func (s *Server) setURL_ROOT(root string) {
+	l := len(root)
+	if l == 0 {
+		s.URL_ROOT = "/"
+		return
+	}
+	if root[l-1] != '/' {
+		root = root + "/"
+		s.URL_ROOT = root
+		return
+	}
+	s.URL_ROOT = root
 }
 
 func (s *Server) StopTestDBConn() {
@@ -439,6 +440,15 @@ func (s *Server) handleGetAllAccountsBuff(w http.ResponseWriter, r *http.Request
 
 func (s *Server) handleDELETE_ALL_RECORDS_FROM_DATABASE(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("\n ~~~~~~ DELETE ALL RECORDS FROM DATABASE ~~~~~~")
+	m := s.intro2handleFuncs(w, r)
+	if m == nil {
+		return
+	}
+	succ := s.m.DELETE_ALL_RECORDS_IN_DATABASE()
+	if !succ {
+		s.respond(w, msgFAIL, erc_DELETE_ALL_ACCOUNTS_ERR, "fail during delete all accounts")
+	}
+	s.respond(w, msgSUCCESS, erc_SUCCESS, "succesfuly deleted all records")
 }
 
 //////////////////////////////////////
@@ -460,6 +470,8 @@ func (s *Server) ListenAndServe() {
 	s.myr.HandleFunc(s.URL_ROOT+"getAllLoginsDB", s.handleGetAllLoginsDB).Methods("GET")
 	s.myr.HandleFunc(s.URL_ROOT+"getAllAccountsDB", s.handleGetAllAccountsDB).Methods("GET")
 	s.myr.HandleFunc(s.URL_ROOT+"getAllAccountsBuff", s.handleGetAllAccountsBuff).Methods("GET")
+
+	s.myr.HandleFunc(s.URL_ROOT+"DeleteAllRecordsFromDatabase", s.handleDELETE_ALL_RECORDS_FROM_DATABASE).Methods("DELETE")
 
 	s.m.TestDBConn()
 
