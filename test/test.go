@@ -12,8 +12,8 @@ func main() {
 	var (
 		root_url_to_api         = "/authserv/"
 		mysqluser               = "authservuser1"
-		password                = "Nyw)5(pjmL"
-		address                 = "10.8.0.1"
+		password                = "Nyw)5(pjmL" // that is fine
+		address                 = "10.8.0.1"   // server is not public, and just for this test
 		port                    = 3306
 		database_name           = "authserv"
 		table_name              = "accounts1"
