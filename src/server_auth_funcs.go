@@ -1,7 +1,6 @@
 package authserv
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -13,7 +12,7 @@ func (acc *account) durationOK(max_token_age time.Duration) bool {
 // ret true and prolong acc if login, token and time ok
 // if smth wrong return false and msg
 func (s *Server) prolongAuth(login, token string) (bool, string) {
-	fmt.Printf("prolongAuth(%v, %v...)\n", login, token[:10])
+	//fmt.Printf("prolongAuth(%v, %v...)\n", login, token[:10])
 	succ, msg := s.isAuthenticated(login, token)
 	if !succ {
 		return false, msg
@@ -25,7 +24,7 @@ func (s *Server) prolongAuth(login, token string) (bool, string) {
 // return false and message if failure
 // return true and "" if success
 func (s *Server) loginAccount(login, pass string) (bool, string, *account) {
-	fmt.Printf("loginAccount(%v, '*******')\n", login)
+	//fmt.Printf("loginAccount(%v, '*******')\n", login)
 
 	// check if there is an account with such a login
 	succ, msg, acc := s.m.getAcc(login)
@@ -41,7 +40,7 @@ func (s *Server) loginAccount(login, pass string) (bool, string, *account) {
 		return true, msgSUCCESS, acc
 	}
 
-	acc.newToken()
+	acc.newToken(s.Cnf.TOKEN_LENGTH)
 	succ, msg = s.m.updateTokenDB(login, acc.Current_token)
 	if !succ {
 		return false, msg, nil
@@ -61,7 +60,7 @@ func (s *Server) loginAccount(login, pass string) (bool, string, *account) {
 //  - durationOK
 func (s *Server) isAuthenticated(login, token string) (bool, string) {
 	// return succ, is_authorised, msg
-	fmt.Printf("isAuthorised(%v, %v...)\n", login, token[:10])
+	//fmt.Printf("isAuthorised(%v, %v...)\n", login, token[:10])
 	// check if there is an account with such login
 	succ, msg, acc := s.m.getAcc(login)
 	if !succ {
@@ -76,10 +75,10 @@ func (s *Server) isAuthenticated(login, token string) (bool, string) {
 		return false, msgTOKEN_MISSMATCH
 	}
 	// check if this account's last login wasnt to long ago
-	if !acc.durationOK(MAX_TOKEN_AGE) {
+	if !acc.durationOK(s.Cnf.MAX_TOKEN_AGE) {
 		succ, msg := s.m.updateLoggedIn(login, false)
 		if !succ {
-			panic(msg)
+			return false, msg
 		}
 		return false, msgTOKEN_TIMEOUT
 	}

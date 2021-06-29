@@ -37,25 +37,17 @@ func (acc *account) uLogTime() {
 }
 
 // Create new token
-func (acc *account) newToken() {
-	acc.Current_token = cmt.RandString(TOKEN_LENGTH)
+func (acc *account) newToken(length int) {
+	acc.Current_token = cmt.RandString(length)
 }
 
-func (acc *account) logout() {
-	acc.Logged_in = false
-}
-
-func (acc *account) login() {
-	acc.Logged_in = true
-}
-
-func makeAccount(login, pass string) *account {
+func makeAccount(login, pass string, token_length int) *account {
 
 	acc := &account{}
 	acc.setLogin(login)
 	acc.setPassHash(pass)
 	acc.uLogTime()
-	acc.newToken()
+	acc.newToken(token_length)
 
 	return acc
 }

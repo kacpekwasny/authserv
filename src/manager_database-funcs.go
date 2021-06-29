@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	cmt "github.com/kacpekwasny/commontools"
 )
 
 // ALL Account atributes DATABASE UPDATE
@@ -33,53 +35,20 @@ func (m *Manager) updateLoggedInDB(login string, logged_in bool) (bool, string) 
 	return m.updateValueDB(login, "logged_in", logged_in)
 }
 
-//
-
-// ALL Account atributes DATABASE GET
-func (m *Manager) getPassHashDB(login string) (bool, string, string) {
-	succ, msg, intface := m.getValueDB(login, "pass_hash")
-	if succ {
-		return succ, msg, intface.(string)
-	}
-	return succ, msg, ""
-}
-
-func (m *Manager) getLastLoginDB(login string) (bool, string, time.Time) {
-	succ, msg, intface := m.getValueDB(login, "last_login")
-	if succ {
-		return succ, msg, intface.(time.Time)
-	}
-	return succ, msg, time.Time{}
-}
-
-func (m *Manager) getTokenDB(login string) (bool, string, string) {
-	succ, msg, intface := m.getValueDB(login, "token")
-	if succ {
-		return succ, msg, intface.(string)
-	}
-	return succ, msg, ""
-}
-
-func (m *Manager) getLoggedInDB(login string) (bool, string, bool) {
-	succ, msg, intface := m.getValueDB(login, "logged_in")
-	if succ {
-		return succ, msg, intface.(bool)
-	}
-	return succ, msg, false
-}
-
 //// ADMIN FUNCS //////
 func (m *Manager) getAllLogins() (bool, string, []string) {
-	fmt.Println("getAllLogins()")
+	//fmt.Println("getAllLogins()")
 	// return succ, msg
 	//sqltxt has to have %v in place of table name
 	sqltxt := "SELECT login FROM %s"
 	rows, err := m.DB.Query(fmt.Sprintf(sqltxt, m.db_tablename))
-	defer rows.Close()
+	defer func() {
+		cmt.Pc(rows.Close())
+	}()
 
 	if err != nil {
-		fmt.Println("  ERROR: ", err)
-		return false, msgERR_WHEN_QUERY, nil
+		//fmt.Println("  ERROR: ", err)
+		return false, msgERR_WHEN_QUERY + " " + err.Error(), nil
 	}
 	var login_ls []string
 	for rows.Next() {
@@ -89,7 +58,7 @@ func (m *Manager) getAllLogins() (bool, string, []string) {
 			if err == sql.ErrNoRows {
 				return false, msgERR_NO_ROWS_RETURNED, nil
 			}
-			return false, msgERR_WHEN_SCANNING_QUERY, nil
+			return false, msgERR_WHEN_SCANNING_QUERY + " " + err.Error(), nil
 		}
 		login_ls = append(login_ls, login)
 	}
@@ -97,16 +66,18 @@ func (m *Manager) getAllLogins() (bool, string, []string) {
 }
 
 func (m *Manager) getAllAccounts() (bool, string, []account) {
-	fmt.Println("getAllAccounts()")
+	//fmt.Println("getAllAccounts()")
 	// return succ, msg
 	//sqltxt has to have %v in place of table name
 	sqltxt := "SELECT login, pass_hash, last_login, token, logged_in  FROM %s"
 	rows, err := m.DB.Query(fmt.Sprintf(sqltxt, m.db_tablename))
-	defer rows.Close()
+	defer func() {
+		cmt.Pc(rows.Close())
+	}()
 
 	if err != nil {
-		fmt.Println("  ERROR: ", err)
-		return false, msgERR_WHEN_QUERY, nil
+		//fmt.Println("  ERROR: ", err)
+		return false, msgERR_WHEN_QUERY + " " + err.Error(), nil
 	}
 	var acc_ls []account
 	for rows.Next() {
@@ -116,7 +87,7 @@ func (m *Manager) getAllAccounts() (bool, string, []account) {
 			if err == sql.ErrNoRows {
 				return false, msgERR_NO_ROWS_RETURNED, nil
 			}
-			return false, msgERR_WHEN_SCANNING_QUERY, nil
+			return false, msgERR_WHEN_SCANNING_QUERY + " " + err.Error(), nil
 		}
 		acc_ls = append(acc_ls, acc)
 	}

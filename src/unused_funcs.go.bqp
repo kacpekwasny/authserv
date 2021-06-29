@@ -1,0 +1,239 @@
+func (m *Manager) getPassHash(login string) (bool, string, string) {
+	fmt.Printf("getPassHash(%v)\n", login)
+	// success, msg, pass_hash
+	succ, pass_hash := m.getPassHashBuff(login)
+	if succ {
+		// jest w buff
+		return true, msgSUCCESS, pass_hash
+	}
+	// nie ma w buff
+	succ, msg, pass_hash := m.getPassHashDB(login)
+	if succ {
+		// jest w db
+		succ, msg = m.loadAccToBuff(login)
+		if !succ {
+			// nie udalo sie pobrac z db
+			panic(msg)
+		}
+		//udalo sie pobrac z db
+		return true, msgSUCCESS, pass_hash
+	}
+	// nie ma
+	return false, msg, ""
+}
+
+func (m *Manager) getLastLogin(login string) (bool, string, time.Time) {
+	fmt.Printf("getLastLogin(%v)\n", login)
+	// success, msg, pass_hash
+	succ, last_login := m.getLastLoginBuff(login)
+	if succ {
+		// jest w buff
+		return true, msgSUCCESS, last_login
+	}
+	// nie ma w buff
+	succ, msg, last_login := m.getLastLoginDB(login)
+	if succ {
+		// jest w db
+		succ, msg = m.loadAccToBuff(login)
+		if !succ {
+			// nie udalo sie pobrac z db
+			panic(msg)
+		}
+		// jest juz w buff
+		return true, msgSUCCESS, last_login
+	}
+	// nie ma albo blad
+	return false, msg, time.Time{}
+}
+
+func (m *Manager) getToken(login string) (bool, string, string) {
+	fmt.Printf("getToken(%v)\n", login)
+	// success, msg, pass_hash
+	succ, token := m.getTokenBuff(login)
+	if succ {
+		// jest w buff
+		return true, msgSUCCESS, token
+	}
+	// nie ma w buff
+	succ, msg, token := m.getTokenDB(login)
+	if succ {
+		// jest w db
+		succ, msg = m.loadAccToBuff(login)
+		if !succ {
+			// nie udalo sie pobrac z db
+			panic(msg)
+		}
+		// udalo sie pobrac z db
+		return true, msgSUCCESS, token
+	}
+	// nie ma albo blad
+	return false, msg, ""
+}
+
+func (m *Manager) getLoggedIn(login string) (bool, string, bool) {
+	fmt.Printf("getLoggedIn(%v)\n", login)
+	// success, msg, pass_hash
+	succ, logged_in := m.getLoggedInBuff(login)
+	if succ {
+		// jest w buff
+		return true, msgSUCCESS, logged_in
+	}
+	// nie ma w buff
+	succ, msg, logged_in := m.getLoggedInDB(login)
+	if succ {
+		// jest w db
+		succ, msg = m.loadAccToBuff(login)
+		if !succ {
+			panic(msg)
+		}
+		// udalo sie pobrac
+		return true, msgSUCCESS, logged_in
+	}
+	// nie ma albo blad
+	return false, msg, false
+}
+
+
+
+func (m *Manager) updateToken(login, new_token string) (bool, string) {
+	fmt.Printf("updateToken(%v, %v...)\n", login, new_token[:10])
+	succ, msg := m.updateTokenDB(login, new_token)
+	if !succ {
+		return false, msg
+	}
+	succ, msg = m.loadAccToBuff(login)
+	if !succ {
+		panic(msg)
+	}
+	m.updateTokenBuff(login, new_token)
+	return true, msgSUCCESS
+}
+
+func (m *Manager) updateLoggedIn(login string, logged_in bool) (bool, string) {
+	fmt.Printf("updateLoggedIn(%v, %v)\n", login, logged_in)
+	succ, msg := m.updateLoggedInDB(login, logged_in)
+	if !succ {
+		return false, msg
+	}
+	succ, msg = m.loadAccToBuff(login)
+	if !succ {
+		panic(msg)
+	}
+	m.updateLoggedInBuff(login, logged_in)
+	return true, msgSUCCESS
+}
+
+func (m *Manager) updateToken(login, new_token string) (bool, string) {
+	fmt.Printf("updateToken(%v, %v...)\n", login, new_token[:10])
+	succ, msg := m.updateTokenDB(login, new_token)
+	if !succ {
+		return false, msg
+	}
+	succ, msg = m.loadAccToBuff(login)
+	if !succ {
+		panic(msg)
+	}
+	m.updateTokenBuff(login, new_token)
+	return true, msgSUCCESS
+}
+
+// ALL Account atributes DATABASE GET //
+func (m *Manager) getPassHashBuff(login string) (bool, string) {
+	succ, acc := m.getAccBuff(login)
+	if !succ {
+		return false, ""
+	}
+	return true, acc.Pass_hash
+}
+
+func (m *Manager) getLastLoginBuff(login string) (bool, time.Time) {
+	succ, acc := m.getAccBuff(login)
+	if !succ {
+		return false, time.Time{}
+	}
+	return true, acc.Last_login
+}
+
+func (m *Manager) getTokenBuff(login string) (bool, string) {
+	succ, acc := m.getAccBuff(login)
+	if !succ {
+		return false, ""
+	}
+	return true, acc.Current_token
+}
+
+func (m *Manager) getLoggedInBuff(login string) (bool, bool) {
+	succ, acc := m.getAccBuff(login)
+	if !succ {
+		return false, false
+	}
+	return true, acc.Logged_in
+}
+
+func (m *Manager) updateTokenBuff(login, newtoken string) bool {
+	succ, acc := m.getAccBuff(login)
+	if !succ {
+		return false
+	}
+	acc.Current_token = newtoken
+	return true
+}
+
+func (m *Manager) getValueDB(login, col_name string) (bool, string, interface{}) {
+	fmt.Printf("getValueDB(%v)\n", login)
+	var intface interface{}
+	succ, msg := m.dbQueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE login=?", col_name, "%s"), []interface{}{login}, &intface)
+	return succ, msg, intface
+}
+
+// ALL Account atributes DATABASE GET
+func (m *Manager) getPassHashDB(login string) (bool, string, string) {
+	succ, msg, intface := m.getValueDB(login, "pass_hash")
+	if succ {
+		return succ, msg, intface.(string)
+	}
+	return succ, msg, ""
+}
+
+func (m *Manager) getLastLoginDB(login string) (bool, string, time.Time) {
+	succ, msg, intface := m.getValueDB(login, "last_login")
+	if succ {
+		return succ, msg, intface.(time.Time)
+	}
+	return succ, msg, time.Time{}
+}
+
+func (m *Manager) getTokenDB(login string) (bool, string, string) {
+	succ, msg, intface := m.getValueDB(login, "token")
+	if succ {
+		return succ, msg, intface.(string)
+	}
+	return succ, msg, ""
+}
+
+func (m *Manager) getLoggedInDB(login string) (bool, string, bool) {
+	succ, msg, intface := m.getValueDB(login, "logged_in")
+	if succ {
+		return succ, msg, intface.(bool)
+	}
+	return succ, msg, false
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

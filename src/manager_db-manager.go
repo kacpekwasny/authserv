@@ -20,17 +20,23 @@ type Manager struct {
 
 	DB               *sql.DB
 	db_ping_interval time.Duration
+	db_ping_timeout  time.Duration
+	db_ping_on_mtx   *sync.Mutex
 	db_ping_on       bool
+	connection       bool
+	ping_err         error
 
 	accountBuffer         *[]*account
 	accBuffMTX            *sync.Mutex
 	max_accountBuffer_len int
 	observe_interval      time.Duration
+
+	LOG_LEVEL int
 }
 
-func InitManager(db_username, db_password, db_address string, dp_port int,
-	db_database_name, db_tablename string, ping_interval time.Duration, max_accountBuffer_len int,
-	observe_interval time.Duration) *Manager {
+func InitManager(db_username, db_password, db_address string, dp_port int, db_database_name, db_tablename string,
+	ping_interval, ping_timeout time.Duration,
+	max_accountBuffer_len int, observe_interval time.Duration) *Manager {
 	m := &Manager{}
 
 	m.db_username = db_username
@@ -41,12 +47,17 @@ func InitManager(db_username, db_password, db_address string, dp_port int,
 	m.db_tablename = db_tablename
 
 	m.db_ping_interval = ping_interval
+	m.db_ping_timeout = ping_timeout
 	m.db_ping_on = false
+	m.connection = false
+	m.db_ping_on_mtx = &sync.Mutex{}
 
 	m.accBuffMTX = &sync.Mutex{}
 	m.accountBuffer = &[]*account{}
 	m.max_accountBuffer_len = max_accountBuffer_len
 	m.observe_interval = observe_interval
+
+	m.LOG_LEVEL = 1
 
 	m.DBConnection()
 	return m
@@ -60,39 +71,93 @@ func (m *Manager) DBConnection() {
 	m.DB = db
 }
 
-func (m *Manager) TestDBConn() {
-	m.db_ping_on = true
-	ping_count := 0
-	go func() {
-		fmt.Println(" TestDBConn() - START")
-		for {
-			m.PingDB()
-			if ping_count%10 == 0 {
-				fmt.Printf(" TestDBConn() - %v ping successfull\n  next info in 10 pings.\n", ping_count)
-				ping_count++
-			}
-			time.Sleep(m.db_ping_interval)
-			if !m.db_ping_on {
-				fmt.Println(" TestDBConn() - END")
-				return
-			}
-		}
+func (m *Manager) ControlConnectionDB(turn_on bool) {
+	defer func() {
+		m.db_ping_on_mtx.Lock()
+		m.db_ping_on = turn_on
+		m.db_ping_on_mtx.Unlock()
 	}()
-}
+	// It is supposed to turn on if it is not allready turned on in another goroutine
+	if turn_on && !m.db_ping_on {
+		go func() {
+			// set test ping as OFF when returning
+			defer func() {
+				m.db_ping_on_mtx.Lock()
+				m.db_ping_on = false
+				m.db_ping_on_mtx.Unlock()
+			}()
+			m.Log1(" TestDBConn() - START")
+			ping_wg := &sync.WaitGroup{}
+			ping_receieved_mtx := &sync.Mutex{}
+			printed_connection_made := false
+			for {
+				ping_recieved := false
+				// Start ping
+				go func() {
+					m.PingDB()
+					ping_receieved_mtx.Lock()
+					ping_recieved = (m.ping_err == nil)
+					ping_receieved_mtx.Unlock()
+				}()
 
-func (m *Manager) StopTestDBConn() {
-	m.db_ping_on = false
+				// check for ping timeout
+				ping_wg.Add(1)
+				go func() {
+					defer ping_wg.Done()
+					const maxtries = 10
+					try := 0
+					for {
+						if !m.connection {
+							m.Log1("goroutine TestDBConn, try: %v", try)
+						}
+						time.Sleep(m.db_ping_timeout / maxtries)
+						if ping_recieved {
+							m.connection = true
+							return
+						}
+						if try > maxtries {
+							ping_receieved_mtx.Lock()
+							ping_recieved = false
+							ping_receieved_mtx.Unlock()
+							m.connection = false
+							return
+						}
+						try++
+					}
+				}()
+				// wait for ping timeout check gouroutine
+				ping_wg.Wait()
+
+				// info print
+				if !m.connection {
+					m.Log1("  NO CONNECTION TO DATABASE! PING TIMEOUT! PING NOT RETURNED IN  %v", m.db_ping_timeout)
+					printed_connection_made = false
+					// try to regain connection
+					go m.DBConnection()
+				}
+				if !printed_connection_made && m.connection {
+					m.Log1("Connection to db made. Ping is succesful.")
+					printed_connection_made = true
+				}
+				if !m.db_ping_on {
+					m.Log1(" TestDBConn() - END")
+					return
+				}
+				time.Sleep(m.db_ping_interval)
+			}
+		}()
+	}
 }
 
 func (m *Manager) PingDB() {
-	cmt.Pc(m.DB.Ping())
+	m.ping_err = m.DB.Ping()
 }
 
 func (m *Manager) dbExec(sqltxt string, vars ...interface{}) (bool, string) {
 	// return succ, msg
 	res, err := m.DB.Exec(sqltxt, vars...)
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return false, err.Error()
 	}
 	rows, _ := res.RowsAffected()
@@ -103,7 +168,7 @@ func (m *Manager) dbExec(sqltxt string, vars ...interface{}) (bool, string) {
 }
 
 func (m *Manager) dbQueryRow(sqltxt string, vars []interface{}, pointers ...interface{}) (bool, string) {
-	fmt.Printf("dbQueryRow(%v, %v)\n", sqltxt, vars)
+	//fmt.Printf("dbQueryRow(%v, %v)\n", sqltxt, vars)
 	// return succ, msg
 	//sqltxt has to have %v in place of table name
 	row := m.DB.QueryRow(fmt.Sprintf(sqltxt, m.db_tablename), vars...)
@@ -118,7 +183,7 @@ func (m *Manager) dbQueryRow(sqltxt string, vars []interface{}, pointers ...inte
 		if err == sql.ErrNoRows {
 			return false, msgERR_NO_ROWS_RETURNED
 		}
-		return false, msgERR_WHEN_SCANNING_QUERY
+		return false, msgERR_WHEN_SCANNING_QUERY + " " + err.Error()
 	}
 	return true, msgSUCCESS
 }
@@ -127,7 +192,7 @@ func (m *Manager) dbQueryRow(sqltxt string, vars []interface{}, pointers ...inte
 
 // BUFFER FUNCS ~~~~ START //
 func (m *Manager) ObserveAccBuff() {
-	fmt.Println("ObserverAccBuff()")
+	//fmt.Println("ObserverAccBuff()")
 	for {
 		if len(*m.accountBuffer) > m.max_accountBuffer_len {
 			acc := m.popLastAccfromBuff()
@@ -140,7 +205,7 @@ func (m *Manager) ObserveAccBuff() {
 }
 
 func (m *Manager) popLastAccfromBuff() *account {
-	fmt.Println("popLastAccfromBuff()")
+	//fmt.Println("popLastAccfromBuff()")
 	m.accBuffMTX.Lock()
 	defer m.accBuffMTX.Unlock()
 	accLsLen := len(*m.accountBuffer)
@@ -153,7 +218,7 @@ func (m *Manager) popLastAccfromBuff() *account {
 }
 
 func (m *Manager) getAccBuff(login string) (bool, *account) {
-	fmt.Println("getAccBuff()")
+	//fmt.Println("getAccBuff()")
 	m.accBuffMTX.Lock()
 	defer m.accBuffMTX.Unlock()
 	for _, acc := range *m.accountBuffer {
@@ -165,7 +230,7 @@ func (m *Manager) getAccBuff(login string) (bool, *account) {
 }
 
 func (m *Manager) appendAccToBuff(acc *account) {
-	fmt.Println("appendAccToBuff()")
+	//fmt.Println("appendAccToBuff()")
 	if acc == nil {
 		return
 	}
@@ -175,7 +240,7 @@ func (m *Manager) appendAccToBuff(acc *account) {
 }
 
 func (m *Manager) accIsInBuff(login string) bool {
-	fmt.Println("accIsInBuff()")
+	//fmt.Println("accIsInBuff()")
 	for _, acc := range *m.accountBuffer {
 		if acc.Login == login {
 			return true
@@ -185,7 +250,7 @@ func (m *Manager) accIsInBuff(login string) bool {
 }
 
 func (m *Manager) loadAccToBuff(login string) (bool, string) {
-	fmt.Printf("loadAccToBuff(%v)\n", login)
+	//fmt.Printf("loadAccToBuff(%v)\n", login)
 	// return success - false when no login found and
 	if m.accIsInBuff(login) {
 		return true, msgSUCCESS
@@ -195,7 +260,7 @@ func (m *Manager) loadAccToBuff(login string) (bool, string) {
 			m.appendAccToBuff(acc)
 			return true, msgSUCCESS
 		}
-		if msg == msgLOGIN_NOT_FOUND_DB {
+		if msg == msgERR_NO_ROWS_RETURNED {
 			return false, msgLOGIN_NOT_FOUND_DB
 		}
 		return false, msg
@@ -203,7 +268,7 @@ func (m *Manager) loadAccToBuff(login string) (bool, string) {
 }
 
 func (m *Manager) deleteAccBuff(login string) bool {
-	fmt.Printf("deleteAccBuff(%v)\n", login)
+	//fmt.Printf("deleteAccBuff(%v)\n", login)
 	m.accBuffMTX.Lock()
 	var (
 		index  int
@@ -239,12 +304,12 @@ func (m *Manager) deleteAccBuff(login string) bool {
 func (m *Manager) insertAccDB(acc *account) (bool, string) {
 	// return error; SUCCESS (true/false); message
 
-	fmt.Printf("newAccDB(%v)\n", *acc)
+	//fmt.Printf("newAccDB(%v)\n", *acc)
 
 	sqltxt := fmt.Sprintf("INSERT INTO %v (login, pass_hash, last_login, token,logged_in) VALUES(?, ?, ?, ?, ?)", m.db_tablename)
 	res, err := m.DB.Exec(sqltxt, acc.Login, acc.Pass_hash, formatTime2TimeStamp(acc.Last_login), acc.Current_token, acc.Logged_in)
 	if err != nil {
-		panic(err)
+		return false, msgERR_WHEN_DBEXEC
 	}
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
@@ -257,7 +322,7 @@ func (m *Manager) insertAccDB(acc *account) (bool, string) {
 }
 
 func (m *Manager) getAccDB(login string) (bool, string, *account) {
-	fmt.Printf("getAccDB(%v)\n", login)
+	//fmt.Printf("getAccDB(%v)\n", login)
 	acc := &account{}
 	acc.Login = login
 	succ, msg := m.dbQueryRow("SELECT pass_hash, token, last_login, logged_in FROM %s WHERE login=?", []interface{}{login},
@@ -268,80 +333,36 @@ func (m *Manager) getAccDB(login string) (bool, string, *account) {
 	return true, msgSUCCESS, acc
 }
 
-func (m *Manager) getValueDB(login, col_name string) (bool, string, interface{}) {
-	fmt.Printf("getValueDB(%v)\n", login)
-	var intface interface{}
-	succ, msg := m.dbQueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE login=?", col_name, "%s"), []interface{}{login}, &intface)
-	return succ, msg, intface
-	//	sqltxt := fmt.Sprintf("SELECT %s FROM %s WHERE login=?", col_name, m.db_tablename)
-	//	var intfaceval interface{}
-	//	err := m.DB.QueryRow(sqltxt, login).Scan(&intfaceval)
-	//	if err != nil {
-	//		if err == sql.ErrNoRows {
-	//			return err, false, msgLOGIN_NOT_FOUND_DB, nil
-	//		}
-	//		return err, false, msgERR_WHEN_SCANNING_QUERY, nil
-	//	}
-	//	return nil, true, msgSUCCESS, intfaceval
-}
-
 func (m *Manager) updateValueDB(login, col_name string, value interface{}) (bool, string) {
 	// return error; SUCCESS (true/false); message
-	fmt.Printf("updateValueDB('%v', '%v', %v) \n", login, col_name, value)
+	//fmt.Printf("updateValueDB('%v', '%v', %v) \n", login, col_name, value)
 	return m.dbExec(fmt.Sprintf("UPDATE %s SET %s = ? WHERE login = ?", m.db_tablename, col_name), value, login)
-
-	//	sqltxt := fmt.Sprintf("UPDATE %s SET %s = ? WHERE login = ?", m.db_tablename, col_name)
-	//	res, err := m.DB.Exec(sqltxt, value, login)
-	//	if err != nil {
-	//		return err, false, msgERR_WHEN_DBEXEC
-	//	}
-	//	rows, _ := res.RowsAffected()
-	//	if rows == 0 {
-	//		return nil, false, msgERR_NO_ROWS_AFFECTED
-	//	}
-	//	if rows == 1 {
-	//		return nil, true, msgSUCCESS
-	//	}
-	//	return ERR_TOO_MANY_ROWS_AFFECTED, true, fmt.Sprintf("Rows affected: %v", rows)
 }
 
 func (m *Manager) deleteAccDB(login string) (bool, string) {
-	fmt.Printf("deleteAccDB('%v')\n", login)
+	//fmt.Printf("deleteAccDB('%v')\n", login)
 	return m.dbExec(fmt.Sprintf("DELETE FROM %s WHERE login = ?", m.db_tablename), login)
-
-	//	sqltxt := fmt.Sprintf("DELETE FROM %s WHERE login = ?", m.db_tablename)
-	//	res, err := m.DB.Exec(sqltxt, login)
-	//	if err != nil {
-	//		return err, false, msgERR_WHEN_DBEXEC
-	//	}
-	//	rows, _ := res.RowsAffected()
-	//	if rows == 0 {
-	//		return nil, false, msgERR_NO_ROWS_AFFECTED
-	//	}
-	//	if rows == 1 {
-	//		return nil, true, msgSUCCESS
-	//	}
-	//	return ERR_TOO_MANY_ROWS_AFFECTED, true, fmt.Sprintf("Rows affected: %v", rows)
 }
 
-func (m *Manager) loginExistsDB(login string) (bool, bool) {
-	fmt.Printf("loginExistsDB(%v)\n", login)
+func (m *Manager) loginExistsDB(login string) (bool, bool, string) {
+	// success, exists, msg
+	//fmt.Printf("loginExistsDB(%v)\n", login)
 	sqltxt := fmt.Sprintf("SELECT login FROM %s WHERE login =?", m.db_tablename)
 	err := m.DB.QueryRow(sqltxt, login).Scan(&login)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// 	   succ, doesnt exist
-			return true, false
+			return true, false, msgSUCCESS
 		}
-		panic(err)
+		return false, false, msgERR_WHEN_SCANNING_QUERY
 	}
 	//     succ, exists
-	return true, true
+	return true, true, msgSUCCESS
 }
 
 func (m *Manager) DELETE_ALL_RECORDS_IN_DATABASE() bool {
 	// return success
-	fmt.Println("DELETE_ALL_RECORDS_IN_DATABASE()")
+	//fmt.Println("DELETE_ALL_RECORDS_IN_DATABASE()")
 	sqltxt := fmt.Sprintf("DELETE FROM %s;", m.db_tablename)
 	res, err := m.DB.Exec(sqltxt)
 	rows, _ := res.RowsAffected()
@@ -353,3 +374,26 @@ func (m *Manager) DELETE_ALL_RECORDS_IN_DATABASE() bool {
 }
 
 // ~~~~ END ~~~~ CRUD ~~~~~ //
+//
+//
+//
+///////////////////////////////////////
+//// LOG FUNCS, same as for Config ////
+
+func (c *Manager) Log1(str string, values ...interface{}) {
+	if c.LOG_LEVEL >= 1 {
+		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+	}
+}
+
+func (c *Manager) Log2(str string, values ...interface{}) {
+	if c.LOG_LEVEL >= 2 {
+		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+	}
+}
+
+func (c *Manager) Log3(str string, values ...interface{}) {
+	if c.LOG_LEVEL >= 3 {
+		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+	}
+}

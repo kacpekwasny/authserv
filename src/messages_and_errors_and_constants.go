@@ -2,13 +2,12 @@ package authserv
 
 import "errors"
 
-var (
+const (
 	// generic
 	msgSUCCESS = "success"
 	msgFAIL    = "fail"
 
 	// messages - has to start with msg
-	msgERR_DB = "database error"
 
 	msgERR_WHEN_DBEXEC         = "error when db exec"
 	msgERR_WHEN_QUERY          = "error when query"
@@ -22,9 +21,6 @@ var (
 	msgACCOUNT_LOGGED_OUT = "account is logged out"
 	msgTOKEN_TIMEOUT      = "token timeout"
 	msgPASSWORD_MISSMATCH = "password missmatch"
-
-	// errors - has to start with ERR
-	ERR_TOO_MANY_ROWS_AFFECTED = errors.New("too many rows affected")
 
 	// error codes
 	erc_SUCCESS                       = "0"  // success,
@@ -48,4 +44,35 @@ var (
 	erc_GET_ALL_LOGINS_ERR            = "18" // get all logins error
 	erc_GET_ALL_ACCOUNTS_ERR          = "19" // get all accounts error
 	erc_DELETE_ALL_ACCOUNTS_ERR       = "20" // error during DELETE ALL
+	erc_ADD_CLIENT_ERR                = "21" // error during adding client
+	erc_REMOVE_CLIENT_ERR             = "22" // error during removing client
+
+	// function codes used for authorisation
+	// server_handle_admin_funcs.go
+	fncd_DeleteAllRecordsFromDataBase = 0
+	fncd_GetAllAccountsDB             = 1
+	fncd_GetAllAccountsBuff           = 2
+
+	fncd_Get1Acc        = 3
+	fncd_GetAllLoginsDB = 4
+	fncd_AddClient      = 4
+	fncd_RemoveClient   = 5
+	fncd_GetClientIds   = 6
+
+	// server_hadnel_funcs.go
+	fncd_AddAccount      = 7
+	fncd_RemoveAccount   = 8
+	fncd_LoginAccount    = 9
+	fncd_IsAuthenticated = 10
+	fncd_ProlongAuth     = 11
+	fncd_LogoutAccount   = 12
+
+	// server.go
+	fncd_ChangeLogin = 13
+	fncd_ChangePass  = 14
+)
+
+var (
+	// errors - has to start with ERR
+	ERR_TOO_MANY_ROWS_AFFECTED = errors.New("too many rows affected")
 )
