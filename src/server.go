@@ -98,7 +98,7 @@ func (s *Server) respond(w http.ResponseWriter, status, err_code, msg string, ge
 		"msg":      msg,
 	}
 	if get_resp != nil {
-		resp["aditional"] = get_resp
+		resp["additional"] = get_resp
 	}
 	cmt.Pc(json.NewEncoder(w).Encode(resp))
 }
@@ -139,6 +139,33 @@ func (s *Server) intro2handleFuncs(w http.ResponseWriter, func_code int, r *http
 	return m
 }
 
+func (s *Server) DisplayStartInfoFromDB(wait_for_connection bool, success *bool) {
+	go func() {
+		tries := 0
+		if wait_for_connection {
+			for !s.m.connection {
+				// connection is not ready yet
+				if tries > 1000 {
+					s.Cnf.Log1("DisplayInfoFromDB() tried %v times, with no success", tries)
+					*success = false
+					return
+				}
+				time.Sleep(time.Millisecond * 50)
+				tries++
+			}
+		}
+
+		succ, msg, accs := s.m.getAllLogins()
+		if !succ {
+			s.Cnf.Log1("Startup info: s.m.getAllLogins() unsuccesful. msg: " + msg)
+			*success = false
+			return
+		}
+		s.Cnf.Log1(" <<< Startup info: accounts in database: %v >>> ", len(accs))
+		*success = true
+	}()
+}
+
 //////////////////////////////////////
 
 func (s *Server) ListenAndServe() {
@@ -169,6 +196,8 @@ func (s *Server) ListenAndServe() {
 	s.myr.HandleFunc(s.url_root+"removeClient", s.handleRemoveClient).Methods("DELETE")
 	s.myr.HandleFunc(s.url_root+"getClientIDs", s.handleGetClientIds).Methods("GET")
 
+	i := false
+	s.DisplayStartInfoFromDB(true, &i)
 	s.m.ControlConnectionDB(true)
 	log.Fatal(http.ListenAndServe(":8888", s.myr))
 }

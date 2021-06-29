@@ -2,6 +2,7 @@ package authserv
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -73,4 +74,13 @@ func IntInSlice(i int, s []int) bool {
 		}
 	}
 	return false
+}
+
+func Log(str string, values ...interface{}) {
+	if str[0] == '\n' {
+		fmt.Printf("\n"+time.Now().Format("02/01/2006 – 15:04:05 SrvLog: ")+str[1:]+"\n", values...)
+	} else {
+		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 SrvLog: ")+str+"\n", values...)
+	}
+
 }

@@ -382,18 +382,18 @@ func (m *Manager) DELETE_ALL_RECORDS_IN_DATABASE() bool {
 
 func (c *Manager) Log1(str string, values ...interface{}) {
 	if c.LOG_LEVEL >= 1 {
-		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+		Log(str, values...)
 	}
 }
 
 func (c *Manager) Log2(str string, values ...interface{}) {
 	if c.LOG_LEVEL >= 2 {
-		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+		Log(str, values...)
 	}
 }
 
 func (c *Manager) Log3(str string, values ...interface{}) {
 	if c.LOG_LEVEL >= 3 {
-		fmt.Printf(time.Now().Format("02/01/2006 – 15:04:05 MngLog: ")+str+"\n", values...)
+		Log(str, values...)
 	}
 }

@@ -1,6 +1,7 @@
 import random
 import time
 import requests as req
+from copy import deepcopy
 
 msgFAIL = "fail"
 
@@ -129,6 +130,7 @@ class Test:
         self.c = Connection(url, credentials)
     
     def genAccount(self):
+        print("\ngenAccount")
         a = Account()
         fail, dc = self.c.addAccount(a.login, a.password)
         if fail:
@@ -139,12 +141,13 @@ class Test:
             print(dc)
             return
         else:
-            dc = dc["aditional"]
+            dc = dc["additional"]
         a.fill(dc)
         self.b.appendAcc(a)
     
     def remAccount(self):
-        acc = self.randomAcc()
+        print("\nremAccount")
+        acc = self.randomAccFailTest()
         fail, dc = self.c.removeAccount(acc.login)
         if fail:
             print(dc)
@@ -152,7 +155,8 @@ class Test:
         self.b.removeAcc(acc.login)
 
     def loginAccount(self):
-        acc = self.randomAcc()
+        print("\nloginAccount")
+        acc = self.randomAccFailTest()
         fail, dc = self.c.loginAccount(acc.login, acc.password)
         if fail:
             print(dc)
@@ -161,7 +165,8 @@ class Test:
         acc.token = dc["token"]
 
     def prolongAuth(self):
-        acc = self.randomAcc()
+        print("\nprolongAuth")
+        acc = self.randomAccFailTest()
         fail, dc = self.c.prolongAuth(acc.login, acc.token)
         if fail:
             if dc["err_code"] == "17":
@@ -171,7 +176,8 @@ class Test:
                 return
 
     def logoutAccount(self):
-        acc = self.randomAcc()
+        print("\nlogoutAccount")
+        acc = self.randomAccFailTest()
         dc = self.c.logoutAccount(acc.login, acc.token)
         fail = checkFail(dc)
         if fail:
@@ -181,7 +187,8 @@ class Test:
         acc.logged_in = False
         
     def changeLogin(self):
-        acc = self.randomAcc()
+        print("\nchangeLogin")
+        acc = self.randomAccFailTest()
         new_login = Account().login
         fail, dc = self.c.changeLogin(acc.login, acc.token, new_login)
         if fail:
@@ -192,7 +199,8 @@ class Test:
         self.b.accs[acc.login] = acc
 
     def changePassword(self):
-        acc = self.randomAcc()
+        print("\nchangePassword")
+        acc = self.randomAccFailTest()
         new_pass = Account().password
         fail, dc = self.c.changePass(acc.login, acc.token, new_pass)
         if fail:
@@ -203,17 +211,17 @@ class Test:
         if fail:
             print(dc)
             return
-        dc = dc["aditional"]
+        dc = dc["additional"]
         acc.hash_pass = dc["pass_hash"]
 
 
     def syncAccounts(self):
-        # Sync is useless because it doesnt know password, only the hash so it cant logg in
+        # Sync is useless because it doesnt know the password, only the hash of it so it cant log in
         fail, dc = self.c.getAllAccounts()
         if fail:
             print(dc)
             return
-        dc = dc["aditional"]
+        dc = dc["additional"]
         print(f"syncAccounts(), type(dc)={type(dc)}, len(dc)={len(dc)}")
         for acc_dc in dc:
             login = acc_dc["login"]
@@ -229,6 +237,26 @@ class Test:
         if len(self.b.accs) > 0:
             return random.choice( list(self.b.accs.values()) )
         return None
+
+    def randomAccFailTest(self) -> Account:
+        """Might return normal account,
+        might return a fake account,
+        might return an account with altered atributes."""
+        i = random.random()
+        chance1 = 0.1
+        chance2 = 0.1
+        if i < chance1:
+            print(" ~ ~ Entirely fake account")
+            acc = Account()
+        elif chance1 < i < chance1 + chance2:
+            print(" ~ ~ Partialy fake account")
+            acc = deepcopy(self.randomAcc())
+            acc.password = "wrong password"
+            acc.token = "wrong token"
+        else:
+            print(" ~ ~ Real account")
+            acc = self.randomAcc()
+        return acc
 
     def simulation(self):
         counter = 0
@@ -248,10 +276,8 @@ class Test:
                 fail, dc = self.c.getAllLoginsDB()
                 if fail:
                     print(dc)
-                accs = dc["aditional"]
+                accs = dc["additional"]
                 print("Logins in db:", len(accs))
-                print("SYNC:")
-                # self.syncAccounts() # Sync is useless because it doesnt know password, only the hash so it cant logg in
                 time.sleep(2)
 
             counter += 1

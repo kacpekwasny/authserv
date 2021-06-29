@@ -223,7 +223,7 @@ func (s *Server) handleLogoutAccount(w http.ResponseWriter, r *http.Request) {
 /// ~ CHANGE LOGIN / PASS ~~ ///
 func (s *Server) handleChangeLogin(w http.ResponseWriter, r *http.Request) {
 	/*
-		required aditional json fields:
+		required additional json fields:
 			login, token, new_login
 	*/
 	s.Cnf.Log1("\n – – – handle Change Login")
@@ -235,7 +235,7 @@ func (s *Server) handleChangeLogin(w http.ResponseWriter, r *http.Request) {
 
 	ok, msg := s.isAuthenticated(m["login"], m["token"])
 	if !ok {
-		s.Cnf.Log2("login: '%v', token: xxxxxxx", m["login"])
+		s.Cnf.Log2("isAuthenticated( %v, ****** ), false. "+msg, m["login"])
 		s.respond(w, msgFAIL, erc_UNAUTHENTICATED, "need to be authenticated to change login. "+msg, nil)
 		return
 	}
@@ -251,7 +251,7 @@ func (s *Server) handleChangeLogin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleChangePass(w http.ResponseWriter, r *http.Request) {
 	/*
-		required aditional json fields:
+		required additional json fields:
 			login, token, new_pass
 	*/
 	s.Cnf.Log1("\n – – – handle Change Pass")
