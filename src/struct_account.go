@@ -27,7 +27,7 @@ func (acc *account) setPassHash(pass string) {
 	acc.Pass_hash = makeHash(pass)
 }
 
-func (acc *account) updatePassHash(pass_hash string) {
+func (acc *account) UpdatePassHash(pass_hash string) {
 	acc.Pass_hash = pass_hash
 }
 

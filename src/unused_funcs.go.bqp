@@ -109,8 +109,8 @@ func (m *Manager) updateToken(login, new_token string) (bool, string) {
 	return true, msgSUCCESS
 }
 
-func (m *Manager) updateLoggedIn(login string, logged_in bool) (bool, string) {
-	fmt.Printf("updateLoggedIn(%v, %v)\n", login, logged_in)
+func (m *Manager) UpdateLoggedIn(login string, logged_in bool) (bool, string) {
+	fmt.Printf("UpdateLoggedIn(%v, %v)\n", login, logged_in)
 	succ, msg := m.updateLoggedInDB(login, logged_in)
 	if !succ {
 		return false, msg

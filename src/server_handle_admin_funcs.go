@@ -17,9 +17,9 @@ func (s *Server) handleGet1Acc(w http.ResponseWriter, r *http.Request) {
 		s.Cnf.Log2("intro2handleFuncs(...) stopped request")
 		return
 	}
-	succ, msg, acc := s.m.getAcc(m["login"])
+	succ, msg, acc := s.m.GetAcc(m["login"])
 	if !succ {
-		s.Cnf.Log2("getAcc( %v ), failed. "+msg, m["login"])
+		s.Cnf.Log2("GetAcc( %v ), failed. "+msg, m["login"])
 		s.respond(w, msgFAIL, erc_GET_ACCOUNT_FAILED, msg, nil)
 		return
 	}

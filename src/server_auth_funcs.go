@@ -27,7 +27,7 @@ func (s *Server) loginAccount(login, pass string) (bool, string, *account) {
 	//fmt.Printf("loginAccount(%v, '*******')\n", login)
 
 	// check if there is an account with such a login
-	succ, msg, acc := s.m.getAcc(login)
+	succ, msg, acc := s.m.GetAcc(login)
 	if !succ {
 		return false, msg, nil
 	}
@@ -49,7 +49,7 @@ func (s *Server) loginAccount(login, pass string) (bool, string, *account) {
 	if !succ {
 		return false, msg, nil
 	}
-	succ, msg = s.m.updateLoggedIn(login, true)
+	succ, msg = s.m.UpdateLoggedIn(login, true)
 	return succ, msg, acc
 }
 
@@ -62,7 +62,7 @@ func (s *Server) isAuthenticated(login, token string) (bool, string) {
 	// return succ, is_authorised, msg
 	//fmt.Printf("isAuthorised(%v, %v...)\n", login, token[:10])
 	// check if there is an account with such login
-	succ, msg, acc := s.m.getAcc(login)
+	succ, msg, acc := s.m.GetAcc(login)
 	if !succ {
 		return false, msg
 	}
@@ -76,7 +76,7 @@ func (s *Server) isAuthenticated(login, token string) (bool, string) {
 	}
 	// check if this account's last login wasnt to long ago
 	if !acc.durationOK(s.Cnf.MAX_TOKEN_AGE) {
-		succ, msg := s.m.updateLoggedIn(login, false)
+		succ, msg := s.m.UpdateLoggedIn(login, false)
 		if !succ {
 			return false, msg
 		}

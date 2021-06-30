@@ -188,6 +188,16 @@ func (m *Manager) dbQueryRow(sqltxt string, vars []interface{}, pointers ...inte
 	return true, msgSUCCESS
 }
 
+func (m *Manager) MakeTable(table_name string) (bool, string) {
+	_, err := m.DB.Exec("CREATE TABLE IF NOT EXISTS " + table_name + " (login VARCHAR(50) PRIMARY KEY, pass_hash TINYTEXT, last_login TIMESTAMP, token TINYTEXT, logged_in BOOLEAN)")
+	if err != nil {
+		m.Log1(" MakeTable(%v) FAILED : false, %v", table_name, err.Error())
+		return false, err.Error()
+	}
+	m.Log1(" MakeTable(%v) SUCCESS : true, ''", table_name)
+	return true, ""
+}
+
 // ~~~~~~~~~~~~~~~~ //
 
 // BUFFER FUNCS ~~~~ START //

@@ -15,7 +15,7 @@ func (m *Manager) updatePassHashBuff(login, newPass_hash string) bool {
 	if !succ {
 		return false
 	}
-	acc.updatePassHash(newPass_hash)
+	acc.UpdatePassHash(newPass_hash)
 	return true
 }
 

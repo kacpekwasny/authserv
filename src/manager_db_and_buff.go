@@ -1,7 +1,7 @@
 package authserv
 
-func (m *Manager) addAccount(acc *account) (bool, string) {
-	//fmt.Printf("addAccount(%v)\n", acc)
+func (m *Manager) AddAccount(acc *account) (bool, string) {
+	//fmt.Printf("AddAccount(%v)\n", acc)
 	succ, msg := m.insertAccDB(acc)
 	m.Log2("Manger.addAccountDB(%v) -> succ: %v, msg: %v", acc.Login, succ, msg)
 	if !succ {
@@ -11,8 +11,8 @@ func (m *Manager) addAccount(acc *account) (bool, string) {
 	return true, msgSUCCESS
 }
 
-func (m *Manager) removeAccount(login string) (bool, string) {
-	//fmt.Printf("removeAccount(%v)\n", login)
+func (m *Manager) RemoveAccount(login string) (bool, string) {
+	//fmt.Printf("RemoveAccount(%v)\n", login)
 	succ, msg := m.deleteAccDB(login)
 	m.Log2("Manger.removeAccountDB(%v) -> succ: %v, msg: %v", login, succ, msg)
 	if !succ {
@@ -25,7 +25,7 @@ func (m *Manager) removeAccount(login string) (bool, string) {
 // Update in buff and in //
 ///////////////////////////
 
-func (m *Manager) updateLogin(login, new_login string) (bool, string) {
+func (m *Manager) UpdateLogin(login, new_login string) (bool, string) {
 	// return err, success, msg
 	succ, msg := m.updateLoginDB(login, new_login)
 	m.Log2("Manger.updateLoginDB( %v ,  %v ) -> succ: %v, msg: %v", login, new_login, succ, msg)
@@ -40,8 +40,8 @@ func (m *Manager) updateLogin(login, new_login string) (bool, string) {
 	return true, msgSUCCESS
 }
 
-func (m *Manager) updatePassHash(login, new_pass_hash string) (bool, string) {
-	//fmt.Printf("updatePassHash(%v, %v)\n", login, new_pass_hash)
+func (m *Manager) UpdatePassHash(login, new_pass_hash string) (bool, string) {
+	//fmt.Printf("UpdatePassHash(%v, %v)\n", login, new_pass_hash)
 	succ, msg := m.updatePassHashDB(login, new_pass_hash)
 	m.Log2("Manger.updatePassHashDB( %v ,  %v ) -> succ: %v, msg: %v", login, new_pass_hash, succ, msg)
 	if !succ {
@@ -66,8 +66,8 @@ func (m *Manager) updateLastLogin2Now(login string) (bool, string) {
 	return true, msgSUCCESS
 }
 
-func (m *Manager) updateLoggedIn(login string, logged_in bool) (bool, string) {
-	//fmt.Printf("updateLoggedIn(%v, %v)\n", login, logged_in)
+func (m *Manager) UpdateLoggedIn(login string, logged_in bool) (bool, string) {
+	//fmt.Printf("UpdateLoggedIn(%v, %v)\n", login, logged_in)
 	succ, msg := m.updateLoggedInDB(login, logged_in)
 	m.Log2("Manger.updateLoggedInDB( %v ,  %v ) -> succ: %v, msg: %v", login, logged_in, succ, msg)
 	if !succ {
@@ -84,8 +84,8 @@ func (m *Manager) updateLoggedIn(login string, logged_in bool) (bool, string) {
 // Get from buff or from DB //
 //////////////////////////////
 
-func (m *Manager) getAcc(login string) (bool, string, *account) {
-	//fmt.Printf("getAcc(%v)\n", login)
+func (m *Manager) GetAcc(login string) (bool, string, *account) {
+	//fmt.Printf("GetAcc(%v)\n", login)
 	// success, msg, pass_hash
 	succ, acc := m.getAccBuff(login)
 	if succ {

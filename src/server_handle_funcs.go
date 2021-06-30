@@ -60,10 +60,10 @@ func (s *Server) handleAddAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	acc := makeAccount(m["login"], m["pass"], s.Cnf.TOKEN_LENGTH)
-	succ, msg = s.m.addAccount(acc)
+	succ, msg = s.m.AddAccount(acc)
 	if !succ {
-		s.Cnf.Log2("addAccount( %v ), failed. "+msg, acc)
-		s.respond(w, msgFAIL, erc_CREATE_ACCOUNT_FAIL, "addAccount() failed. msg: "+msg, nil)
+		s.Cnf.Log2("AddAccount( %v ), failed. "+msg, acc)
+		s.respond(w, msgFAIL, erc_CREATE_ACCOUNT_FAIL, "AddAccount() failed. msg: "+msg, nil)
 		return
 	}
 	s.Cnf.Log3("Successfully added new account: %v", acc)
@@ -79,9 +79,9 @@ func (s *Server) handleRemoveAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, msg := s.m.removeAccount(m["login"])
+	ok, msg := s.m.RemoveAccount(m["login"])
 	if !ok {
-		s.Cnf.Log2("removeAccount( %v ), failed. "+msg, m["login"])
+		s.Cnf.Log2("RemoveAccount( %v ), failed. "+msg, m["login"])
 		s.respond(w, msgFAIL, erc_REMOVE_ACCOUNT_FAIL, "failed to remove account. "+msg, nil)
 		return
 	}
@@ -209,9 +209,9 @@ func (s *Server) handleLogoutAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	succ, msg := s.m.updateLoggedIn(m["login"], false)
+	succ, msg := s.m.UpdateLoggedIn(m["login"], false)
 	if !succ {
-		s.Cnf.Log2("updateLoggedIn( %v, false ), failed. "+msg, m["login"])
+		s.Cnf.Log2("UpdateLoggedIn( %v, false ), failed. "+msg, m["login"])
 		s.respond(w, msgFAIL, erc_DB_ERR, msg, nil)
 		return
 	}
@@ -239,9 +239,9 @@ func (s *Server) handleChangeLogin(w http.ResponseWriter, r *http.Request) {
 		s.respond(w, msgFAIL, erc_UNAUTHENTICATED, "need to be authenticated to change login. "+msg, nil)
 		return
 	}
-	succ, msg := s.m.updateLogin(m["login"], m["new_login"])
+	succ, msg := s.m.UpdateLogin(m["login"], m["new_login"])
 	if !succ {
-		s.Cnf.Log2("updateLogin(...) unsuccessfull. msg: " + msg)
+		s.Cnf.Log2("UpdateLogin(...) unsuccessfull. msg: " + msg)
 		s.respond(w, msgFAIL, erc_CHANGE_LOGIN_FAILED, msg, nil)
 		return
 	}
@@ -268,7 +268,7 @@ func (s *Server) handleChangePass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	succ, msg := s.m.updatePassHash(m["login"], makeHash(m["new_pass"]))
+	succ, msg := s.m.UpdatePassHash(m["login"], makeHash(m["new_pass"]))
 	if !succ {
 		s.Cnf.Log2("updatePass(...) unsuccessfull. msg: " + msg)
 		s.respond(w, msgFAIL, erc_CHANGE_PASS_FAILED, msg, nil)

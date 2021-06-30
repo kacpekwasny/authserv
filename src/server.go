@@ -13,6 +13,7 @@ import (
 
 type Server struct {
 	m        *Manager
+	Manager  *Manager
 	myr      *mux.Router
 	url_root string
 	Cnf      *Config
@@ -28,9 +29,12 @@ func InitServer(URL_ROOT, db_username, db_password, db_address string, dp_port i
 		db_database_name, db_tablename, ping_interval, ping_timeout, max_accountBuffer_len,
 		observe_interval)
 
+	s.Manager = s.m
+
 	s.myr = &mux.Router{}
 	s.Cnf = InitConfig()
 	s.setURL_ROOT(URL_ROOT)
+	s.prepareHandle()
 	return s
 }
 
@@ -168,8 +172,7 @@ func (s *Server) DisplayStartInfoFromDB(wait_for_connection bool, success *bool)
 
 //////////////////////////////////////
 
-func (s *Server) ListenAndServe() {
-
+func (s *Server) prepareHandle() {
 	// client_id and password are to authenticate entity trying to create an account
 	s.myr.HandleFunc(s.url_root+"addAccount", s.handleAddAccount).Methods("POST")
 	s.myr.HandleFunc(s.url_root+"removeAccount", s.handleRemoveAccount).Methods("DELETE")
@@ -195,9 +198,15 @@ func (s *Server) ListenAndServe() {
 	s.myr.HandleFunc(s.url_root+"addClient", s.handleAddClient).Methods("POST")
 	s.myr.HandleFunc(s.url_root+"removeClient", s.handleRemoveClient).Methods("DELETE")
 	s.myr.HandleFunc(s.url_root+"getClientIDs", s.handleGetClientIds).Methods("GET")
+}
 
+func (s *Server) ListenAndServe() {
+	log.Fatal(http.ListenAndServe(":8888", s.myr))
+}
+
+func (s *Server) EasyStart() {
 	i := false
 	s.DisplayStartInfoFromDB(true, &i)
 	s.m.ControlConnectionDB(true)
-	log.Fatal(http.ListenAndServe(":8888", s.myr))
+	s.ListenAndServe()
 }

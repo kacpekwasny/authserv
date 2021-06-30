@@ -49,7 +49,7 @@ class Buff:
     def removeAcc(self, login):
         self.accs.pop(login)
 
-    def getAcc(self, login) -> Account:
+    def GetAcc(self, login) -> Account:
         return self.accs[login]
 
 class Connection:
@@ -72,12 +72,12 @@ class Connection:
         print("getAccount(", login, ")")
         return self.get("getAccount", login=login)
         
-    def addAccount(self, login, password):
-        print("addAccount(", login, password, ")")
+    def AddAccount(self, login, password):
+        print("AddAccount(", login, password, ")")
         return self.post("addAccount", **{"login":login, "pass":password})
 
-    def removeAccount(self, login):
-        print("removeAccount(", login, ")")
+    def RemoveAccount(self, login):
+        print("RemoveAccount(", login, ")")
         return self.delete("removeAccount", login=login)
 
     def loginAccount(self, login, password):
@@ -132,7 +132,7 @@ class Test:
     def genAccount(self):
         print("\ngenAccount")
         a = Account()
-        fail, dc = self.c.addAccount(a.login, a.password)
+        fail, dc = self.c.AddAccount(a.login, a.password)
         if fail:
             print(dc)
             return
@@ -148,7 +148,7 @@ class Test:
     def remAccount(self):
         print("\nremAccount")
         acc = self.randomAccFailTest()
-        fail, dc = self.c.removeAccount(acc.login)
+        fail, dc = self.c.RemoveAccount(acc.login)
         if fail:
             print(dc)
             return
@@ -226,7 +226,7 @@ class Test:
         for acc_dc in dc:
             login = acc_dc["login"]
             if login in self.b.accs:
-                acc_from_buff = self.b.getAcc(login)
+                acc_from_buff = self.b.GetAcc(login)
                 acc_from_buff.fill(acc_dc)
             else:
                 new_acc = Account()

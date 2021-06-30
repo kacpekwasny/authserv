@@ -36,7 +36,7 @@ const (
 	erc_REMOVE_ACCOUNT_FAIL           = "10" // failed to remove account
 	erc_CREATE_ACCOUNT_FAIL           = "11" // failed to create account
 	erc_DB_ERR                        = "12" // connection to db failed
-	erc_GET_ACCOUNT_FAILED            = "13" // getAcc() didnt go successfuly
+	erc_GET_ACCOUNT_FAILED            = "13" // GetAcc() didnt go successfuly
 	erc_CHANGE_LOGIN_FAILED           = "14" // changing login failed
 	erc_CHANGE_PASS_FAILED            = "15" // fail during change of pass
 	erc_UNAUTHENTICATED               = "16" // account is unauthenticated

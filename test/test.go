@@ -27,5 +27,8 @@ func main() {
 	fmt.Println("server running")
 	s.SetLogLevel(3)
 	s.SetManagerLogLevel(1)
-	s.ListenAndServe()
+	s.Manager.ControlConnectionDB(true)
+	fmt.Println(s.Manager.MakeTable("accounts2"))
+	s.EasyStart()
+
 }
