@@ -1,4 +1,4 @@
-package authserv
+package authserv2
 
 import (
 	"time"
@@ -6,11 +6,11 @@ import (
 	cmt "github.com/kacpekwasny/commontools"
 )
 
-type account struct {
+type Account struct {
 	Login         string    `json:"login"`
 	Pass_hash     string    `json:"pass_hash"`
 	Last_login    time.Time `json:"last_login"`
-	Current_token string    `json:"current_token"`
+	Current_token string    `json:"token"`
 
 	// To de-auth token when in the time span that it would
 	// still be valid
@@ -18,36 +18,36 @@ type account struct {
 }
 
 // set login
-func (acc *account) setLogin(login string) {
+func (acc *Account) SetLogin(login string) {
 	acc.Login = login
 }
 
 // set hash of password
-func (acc *account) setPassHash(pass string) {
-	acc.Pass_hash = makeHash(pass)
+func (acc *Account) SetPassHash(pass string) {
+	acc.Pass_hash = MakeHash(pass)
 }
 
-func (acc *account) UpdatePassHash(pass_hash string) {
+func (acc *Account) UpdatePassHash(pass_hash string) {
 	acc.Pass_hash = pass_hash
 }
 
 // Update last_login time
-func (acc *account) uLogTime() {
+func (acc *Account) UpdateLogTime() {
 	acc.Last_login = time.Now()
 }
 
 // Create new token
-func (acc *account) newToken(length int) {
+func (acc *Account) NewToken(length int) {
 	acc.Current_token = cmt.RandString(length)
 }
 
-func makeAccount(login, pass string, token_length int) *account {
+func MakeAccount(login, pass string, token_length int) *Account {
 
-	acc := &account{}
-	acc.setLogin(login)
-	acc.setPassHash(pass)
-	acc.uLogTime()
-	acc.newToken(token_length)
+	acc := &Account{}
+	acc.SetLogin(login)
+	acc.SetPassHash(pass)
+	acc.UpdateLogTime()
+	acc.NewToken(token_length)
 
 	return acc
 }
