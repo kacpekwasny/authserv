@@ -1,7 +1,6 @@
 package authserv2
 
 import (
-	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -55,7 +54,6 @@ func (m *Manager) RegisterAccount(login, pass string) error {
 	}
 	// check if there is an account with such a login
 	acc, err := m.GetAccount(login)
-	fmt.Println(acc, err)
 	if acc == nil {
 		if err != ErrLoginNotFound {
 			return ErrDBoffline

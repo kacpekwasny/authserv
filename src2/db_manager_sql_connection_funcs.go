@@ -37,77 +37,47 @@ func (m *Manager) ControlConnectionDB(turn_on bool) {
 				m.db_ping_on = false
 				m.db_ping_on_mtx.Unlock()
 			}()
-			m.Log1(" TestDBConn() - START")
-			ping_wg := &sync.WaitGroup{}
-			ping_receieved_mtx := &sync.Mutex{}
-			printed_connection_made := false
-			lost_connection := false
+			m.Log1(" ControlConnectionDB() - START")
+			pch := make(chan error, 1)
+			mu := sync.Mutex{}
+			counter := 0
 			for {
-				ping_recieved := false
-				// Start ping
+				counter = counter % 5
 				go func() {
-					m.PingDB()
-					ping_receieved_mtx.Lock()
-					ping_recieved = (m.ping_err == nil)
-					ping_receieved_mtx.Unlock()
+					pch <- m.PingDB()
 				}()
 
-				// check for ping timeout
-				ping_wg.Add(1)
-				go func() {
-					defer ping_wg.Done()
-					const maxtries = 10
-					try := 0
-					for {
-						if !m.connection {
-							m.Log3(" TestDBConn, try: %v", try)
-						}
-						time.Sleep(m.db_ping_timeout / maxtries)
-						if ping_recieved {
-							if lost_connection {
-								m.Log1("Regained connection")
-								lost_connection = false
-							}
-							m.connection = true
-							return
-						}
-						if try > maxtries {
-							ping_receieved_mtx.Lock()
-							ping_recieved = false
-							ping_receieved_mtx.Unlock()
-							m.connection = false
-							lost_connection = true
-							return
-						}
-						try++
+				select {
+				case <-pch:
+					mu.Lock()
+					if !m.connection {
+						m.Log1("Regained connection")
 					}
-				}()
-				// wait for ping timeout check gouroutine
-				ping_wg.Wait()
-
-				// info print
-				if !m.connection {
-					m.Log2("  NO CONNECTION TO DATABASE! PING TIMEOUT! PING NOT RETURNED IN  %v", m.db_ping_timeout)
-					printed_connection_made = false
-					// try to regain connection
-					go m.DBConnection()
-				}
-				if !printed_connection_made && m.connection {
-					m.Log1("Connection to db made. Ping is succesful.")
-					printed_connection_made = true
-				}
-				if !m.db_ping_on {
-					m.Log1(" TestDBConn() - END")
-					return
+					m.connection = true
+					mu.Unlock()
+				case <-time.After(m.db_ping_timeout):
+					mu.Lock()
+					if m.connection {
+						m.Log1("Lost connection")
+					} else {
+						// dont spam "No connection to database"
+						// print "db disconnected" every couple tries
+						if counter == 0 {
+							m.Log1("No connection to database")
+						}
+					}
+					m.connection = false
+					mu.Unlock()
 				}
 				time.Sleep(m.db_ping_interval)
+				counter++
 			}
 		}()
 	}
 }
 
-func (m *Manager) PingDB() {
-	m.ping_err = m.DB.Ping()
+func (m *Manager) PingDB() error {
+	return m.DB.Ping()
 }
 
 func (m *Manager) ConnectionIsLive() bool {

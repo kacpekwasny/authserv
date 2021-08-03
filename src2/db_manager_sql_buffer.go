@@ -70,6 +70,7 @@ func (m *Manager) ManageQueryBuffer(turn_on bool) {
 }
 
 func (m *Manager) execReturnedError(q *query, err error) {
+	fmt.Println("authserv2: execReturnedError():")
 	fmt.Println(q.stmt)
 	fmt.Println(q.params...)
 	//m.connection = false
