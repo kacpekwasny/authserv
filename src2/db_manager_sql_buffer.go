@@ -7,8 +7,9 @@ import (
 )
 
 type query struct {
-	stmt   *sql.Stmt
-	params []interface{}
+	sql_txt string
+	stmt    *sql.Stmt
+	params  []interface{}
 }
 
 func (q *query) exec() (sql.Result, error) {
@@ -21,8 +22,9 @@ func (m *Manager) InitQuery(sql_txt string, params ...interface{}) (*query, erro
 		return nil, err
 	}
 	return &query{
-		stmt:   stmt,
-		params: params,
+		sql_txt: sql_txt,
+		stmt:    stmt,
+		params:  params,
 	}, nil
 }
 
@@ -58,7 +60,7 @@ func (m *Manager) ManageQueryBuffer(turn_on bool) {
 				}
 				i, _ := r.RowsAffected()
 				if i == 0 {
-					m.Log3("m.ManagerQueryBuffer(), ZERO RowsAffected() for query: %v", q)
+					m.Log3("m.ManagerQueryBuffer(), No rows affected: sql_text=%v, params=%v", q.sql_txt, q.params)
 				}
 				// untill connection restored or manager turned off
 				for !m.connection && m.query_buff_manager_on {
