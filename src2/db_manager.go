@@ -89,6 +89,7 @@ func (m *Manager) Start() error {
 }
 
 func (c *Manager) Log1(str string, values ...interface{}) {
+	fmt.Println(c)
 	if c.LOG_LEVEL >= 1 {
 		Log("Manager: "+str, values...)
 	}
