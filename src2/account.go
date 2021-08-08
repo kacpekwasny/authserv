@@ -41,6 +41,10 @@ func (acc *Account) NewToken(length int) {
 	acc.Current_token = cmt.RandString(length)
 }
 
+func (acc *Account) PasswordMatches(pass string) bool {
+	return passIsCorrect(pass, acc.Pass_hash)
+}
+
 func MakeAccount(login, pass string, token_length int) *Account {
 
 	acc := &Account{}

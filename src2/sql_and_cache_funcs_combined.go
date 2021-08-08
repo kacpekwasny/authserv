@@ -22,7 +22,7 @@ func (m *Manager) UpdateLogin(login, new_login string) error {
 	switch err {
 	case nil:
 		m.UpdateValueDB(login, "login", new_login)
-		m.GetAccountCache(login).Login = login
+		m.GetAccountCache(login).Login = new_login
 		return nil
 	case sql.ErrNoRows:
 		return ErrLoginNotFound
